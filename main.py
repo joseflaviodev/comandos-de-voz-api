@@ -1,6 +1,7 @@
 import pickle
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from gliner import GLiNER
 
 app = FastAPI()
 
@@ -13,11 +14,14 @@ app.add_middleware(
     allow_headers=["*"],     # Allow all headers
 )
 
-with open('modelos/classificador_naive_bayes.pkl', 'rb') as file:
+with open('modelos/classificador_mlp.pkl', 'rb') as file:
     classificador = pickle.load(file)
 
 with open('modelos/vetorizador.pkl', 'rb') as file:
     vetorizador = pickle.load(file)
+
+labels = ["person", "date"]
+extrator_de_entidades = GLiNER.from_pretrained("urchade/gliner_multi-v2.1")
 
 def vetorizar(comando: str):
     return vetorizador.transform([comando]).toarray()
@@ -28,5 +32,7 @@ async def classifica(comando: str):
         vetorizar(comando)
     )
 
-    return {"acao": retorno[0]}
+    entities = extrator_de_entidades.predict_entities(comando, labels, threshold=0.5)
+
+    return {"acao": retorno[0], "entidades": entities}
     
